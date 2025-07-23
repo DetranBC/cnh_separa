@@ -1,0 +1,38 @@
+========================================
+    COMO USAR O SISTEMA CNH/PID
+========================================
+
+PRIMEIRA VEZ (INSTALACAO):
+1. Baixe Node.js em: https://nodejs.org/
+2. Instale o Node.js (clique em "Next" até o final)
+3. Reinicie o computador
+4. Clique duplo em "INSTALAR-TUDO.bat"
+5. Aguarde a instalação terminar
+
+USO DIARIO:
+1. Clique duplo em "USAR-SISTEMA.bat"
+2. Aguarde abrir 2 janelas pretas
+3. Acesse no navegador: http://localhost:5173
+5. Login: vini
+6. Senha: 328624
+
+ACESSAR DE OUTROS COMPUTADORES:
+1. Na janela "Servidor CNH/PID" procure por "Rede:"
+2. Exemplo: http://192.168.1.100:3001
+3. Use esse endereço nos outros PCs
+4. Mesmo login: vini / 328624
+
+PROBLEMAS COMUNS:
+- Se der erro, instale o Node.js primeiro
+- Se não abrir, verifique antivirus/firewall
+- Para parar o sistema, feche as janelas pretas
+
+BACKUP DOS DADOS:
+- Copie o arquivo: server/cnh_system.db
+- Guarde em local seguro
+- Para restaurar, substitua o arquivo
+
+SUPORTE:
+- Todos os dados ficam no seu PC
+- Outros PCs apenas acessam via rede
+- Mantenha o PC principal sempre ligado
