@@ -7,10 +7,12 @@ import LoteUpload from './components/LoteUpload';
 import LoteDashboard from './components/LoteDashboard';
 import LoteSeparacao from './components/LoteSeparacao';
 import Relatorios from './components/Relatorios';
+import PasswordChangeModal from './components/PasswordChangeModal';
 
 const AppContent: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, requirePasswordChange } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   if (isLoading) {
     return (
@@ -27,6 +29,18 @@ const AppContent: React.FC = () => {
     return <Login />;
   }
 
+  // Se o usuário precisa trocar a senha obrigatoriamente
+  if (requirePasswordChange) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-stone-100">
+        <PasswordChangeModal 
+          isOpen={true} 
+          onClose={() => {}} 
+          isRequired={true} 
+        />
+      </div>
+    );
+  }
   const renderContent = () => {
     switch (currentView) {
       case 'relatorios':
@@ -44,9 +58,21 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <Layout currentView={currentView} onViewChange={setCurrentView}>
-      {renderContent()}
-    </Layout>
+    <>
+      <Layout 
+        currentView={currentView} 
+        onViewChange={setCurrentView}
+        onShowPasswordModal={() => setShowPasswordModal(true)}
+      >
+        {renderContent()}
+      </Layout>
+      
+      <PasswordChangeModal 
+        isOpen={showPasswordModal} 
+        onClose={() => setShowPasswordModal(false)} 
+        isRequired={false} 
+      />
+    </>
   );
 };
 

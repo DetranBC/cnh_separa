@@ -6,6 +6,7 @@ export interface User {
   cfcName?: string;
   name: string;
   createdAt: string;
+  requirePasswordChange?: boolean;
 }
 
 export interface LoteItem {
@@ -34,4 +35,6 @@ export interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  requirePasswordChange: boolean;
+  updatePassword: (newPassword: string) => Promise<boolean>;
 }

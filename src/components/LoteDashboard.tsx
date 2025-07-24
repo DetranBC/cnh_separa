@@ -60,11 +60,38 @@ const LoteDashboard: React.FC = () => {
   const loadLotes = async () => {
     try {
       const response = await apiService.getLotes();
-      console.log(response);
-      const data = response || [];
+      console.log('Dados recebidos do servidor:', response);
+      
+      // Verifica se response é um array ou se tem uma propriedade data
+      let data = response;
+      if (response && typeof response === 'object' && !Array.isArray(response)) {
+        data = response.data || response;
+      }
+      
+      // Se ainda não for array, tenta fazer parse se for string
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          console.error('Erro ao fazer parse dos dados:', e);
+          data = [];
+        }
+      }
+      
+      // Garante que data é um array
+      if (!Array.isArray(data)) {
+        console.error('Dados não são um array:', data);
+        data = [];
+      }
+      
+      console.log('Lotes processados:', data);
       setLotes(data);
-    } catch(err){ 
-      alert("Deu erro ao pegar os lotes do servidor" + err)
+    } catch(err) { 
+      console.error('Erro ao carregar lotes:', err);
+      alert("Erro ao carregar lotes do servidor: " + err);
+      // Fallback para localStorage se o servidor falhar
+      const localLotes = JSON.parse(localStorage.getItem('lotes') || '[]');
+      setLotes(localLotes);
     }
   };
 
@@ -92,9 +119,10 @@ const LoteDashboard: React.FC = () => {
         
         // Busca exata por nome (apenas nos itens visíveis para o usuário)
         const visibleItems = user?.role === 'cfc' 
-          ? lote.items.filter(item => 
-              item.cfc && item.cfc.toLowerCase().includes(user.cfcName?.toLowerCase() || '')
-            )
+          ? lote.items.filter(item => {
+              const itemCfc = item.cfc || linkNameToCfc(item.nome);
+              return normalizeCfc(itemCfc) === normalizeCfc(user.cfcName);
+            })
           : lote.items;
         
         const nameMatch = visibleItems.some(item => 
@@ -121,21 +149,31 @@ const LoteDashboard: React.FC = () => {
   const updateLoteStatus = async (loteId: string, newStatus: Lote['status']) => {
     if (user?.role !== 'operador') return;
 
-    const updatedLotes = lotes.map(lote => {
-      if (lote.id === loteId) {
-        return {
-          ...lote,
-          status: newStatus,
-          atualizadoPor: user?.name || '',
-          atualizadoEm: new Date().toISOString(),
-        };
-      }
-      return lote;
-    });
-    
-    setLotes(updatedLotes);
-    localStorage.setItem('lotes', JSON.stringify(updatedLotes));
-    window.dispatchEvent(new CustomEvent('loteUpdated'));
+    try {
+      await apiService.updateLoteStatus(loteId, newStatus);
+      
+      // Atualiza o estado local
+      const updatedLotes = lotes.map(lote => {
+        if (lote.id === loteId) {
+          return {
+            ...lote,
+            status: newStatus,
+            atualizadoPor: user?.name || '',
+            atualizadoEm: new Date().toISOString(),
+          };
+        }
+        return lote;
+      });
+      
+      setLotes(updatedLotes);
+      
+      // Atualiza também o localStorage para compatibilidade
+      localStorage.setItem('lotes', JSON.stringify(updatedLotes));
+      window.dispatchEvent(new CustomEvent('loteUpdated'));
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      alert('Erro ao atualizar status do lote');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -265,85 +303,88 @@ const LoteDashboard: React.FC = () => {
             <p className="text-gray-500 text-lg">Nenhum lote encontrado</p>
           </div>
         ) : (
-          filteredLotes.map((lote) => (
-            <div
-              key={lote.id}
-              className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 cursor-pointer border border-stone-200/50 hover:border-emerald-300"
-              onClick={() => handleLoteClick(lote)}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      Lote {lote.numero}
-                    </h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getTipoColor(lote.tipo)}`}>
-                      {lote.tipo}
+          filteredLotes.map((lote) => {
+            const visibleItems = getVisibleItems(lote.items);
+            return (
+              <div
+                key={lote.id}
+                className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 cursor-pointer border border-stone-200/50 hover:border-emerald-300"
+                onClick={() => handleLoteClick(lote)}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-gray-900">
+                        Lote {lote.numero}
+                      </h3>
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${getTipoColor(lote.tipo)}`}>
+                        {lote.tipo}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      {visibleItems.length} itens
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-2 rounded-full text-sm font-semibold flex items-center gap-2 border ${getStatusColor(lote.status)}`}>
+                      {getStatusIcon(lote.status)}
+                      {getStatusLabel(lote.status)}
                     </span>
+                    <Eye className="w-5 h-5 text-gray-400" />
                   </div>
-                  <p className="text-gray-600 flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {getVisibleItems(lote.items).length} itens
-                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className={`px-3 py-2 rounded-full text-sm font-semibold flex items-center gap-2 border ${getStatusColor(lote.status)}`}>
-                    {getStatusIcon(lote.status)}
-                    {getStatusLabel(lote.status)}
-                  </span>
-                  <Eye className="w-5 h-5 text-gray-400" />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500 font-medium">Criado em:</span>
-                  <p className="font-semibold text-gray-800">
-                    {new Date(lote.criadoEm).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-                {canSeeWhoOpened() && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500 font-medium">Criado por:</span>
-                    <p className="font-semibold text-gray-800">{lote.criadoPor}</p>
+                    <span className="text-gray-500 font-medium">Criado em:</span>
+                    <p className="font-semibold text-gray-800">
+                      {new Date(lote.criadoEm).toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
-                )}
-                {lote.pdfFileName && (
-                  <div>
-                    <span className="text-gray-500 font-medium">Arquivo:</span>
-                    <p className="font-semibold text-gray-800 truncate">{lote.pdfFileName}</p>
-                  </div>
-                )}
-              </div>
-
-              {canChangeStatus() && (
-                <div className="mt-4 pt-4 border-t border-stone-200/50 flex gap-2">
-                  {lote.status === 'pendente' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateLoteStatus(lote.id, 'em_separacao');
-                      }}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors text-sm font-medium"
-                    >
-                      Iniciar Separação
-                    </button>
+                  {canSeeWhoOpened() && (
+                    <div>
+                      <span className="text-gray-500 font-medium">Criado por:</span>
+                      <p className="font-semibold text-gray-800">{lote.criadoPor}</p>
+                    </div>
                   )}
-                  {lote.status === 'em_separacao' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateLoteStatus(lote.id, 'recebido');
-                      }}
-                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors text-sm font-medium"
-                    >
-                      Marcar como Recebido
-                    </button>
+                  {lote.pdfFileName && (
+                    <div>
+                      <span className="text-gray-500 font-medium">Arquivo:</span>
+                      <p className="font-semibold text-gray-800 truncate">{lote.pdfFileName}</p>
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          ))
+
+                {canChangeStatus() && (
+                  <div className="mt-4 pt-4 border-t border-stone-200/50 flex gap-2">
+                    {lote.status === 'pendente' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateLoteStatus(lote.id, 'em_separacao');
+                        }}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors text-sm font-medium"
+                      >
+                        Iniciar Separação
+                      </button>
+                    )}
+                    {lote.status === 'em_separacao' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateLoteStatus(lote.id, 'recebido');
+                        }}
+                        className="px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors text-sm font-medium"
+                      >
+                        Marcar como Recebido
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

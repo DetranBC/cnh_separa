@@ -28,10 +28,19 @@ class Database {
         role TEXT NOT NULL CHECK(role IN ('admin', 'cfc', 'interno', 'operador')),
         cfc_name TEXT,
         name TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        require_password_change INTEGER DEFAULT 0
       )
     `);
 
+    // Adiciona a coluna require_password_change se não existir
+    this.db.run(`
+      ALTER TABLE users ADD COLUMN require_password_change INTEGER DEFAULT 0
+    `, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Erro ao adicionar coluna require_password_change:', err.message);
+      }
+    });
     // Tabela de lotes
     this.db.run(`
       CREATE TABLE IF NOT EXISTS lotes (
@@ -81,14 +90,14 @@ class Database {
 
   // Métodos para usuários
   async createUser(userData) {
-    const { username, password, role, cfcName, name } = userData;
+    const { username, password, role, cfcName, name, requirePasswordChange } = userData;
     const hashedPassword = await bcrypt.hash(password, 10);
     
     return new Promise((resolve, reject) => {
       this.db.run(`
-        INSERT INTO users (username, password, role, cfc_name, name)
-        VALUES (?, ?, ?, ?, ?)
-      `, [username, hashedPassword, role, cfcName, name], function(err) {
+        INSERT INTO users (username, password, role, cfc_name, name, require_password_change)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [username, hashedPassword, role, cfcName, name, requirePasswordChange ? 1 : 0], function(err) {
         if (err) {
           reject(err);
         } else {
@@ -115,7 +124,7 @@ class Database {
   async getAllUsers() {
     return new Promise((resolve, reject) => {
       this.db.all(`
-        SELECT id, username, role, cfc_name, name, created_at FROM users
+        SELECT id, username, role, cfc_name, name, created_at, require_password_change FROM users
       `, [], (err, rows) => {
         if (err) {
           reject(err);
@@ -127,7 +136,7 @@ class Database {
   }
 
   async updateUser(id, userData) {
-    const { username, password, role, cfcName, name } = userData;
+    const { username, password, role, cfcName, name, requirePasswordChange } = userData;
     let hashedPassword = null;
     
     if (password) {
@@ -136,12 +145,12 @@ class Database {
     
     return new Promise((resolve, reject) => {
       const query = hashedPassword 
-        ? `UPDATE users SET username = ?, password = ?, role = ?, cfc_name = ?, name = ? WHERE id = ?`
-        : `UPDATE users SET username = ?, role = ?, cfc_name = ?, name = ? WHERE id = ?`;
+        ? `UPDATE users SET username = ?, password = ?, role = ?, cfc_name = ?, name = ?, require_password_change = ? WHERE id = ?`
+        : `UPDATE users SET username = ?, role = ?, cfc_name = ?, name = ?, require_password_change = ? WHERE id = ?`;
       
       const params = hashedPassword 
-        ? [username, hashedPassword, role, cfcName, name, id]
-        : [username, role, cfcName, name, id];
+        ? [username, hashedPassword, role, cfcName, name, requirePasswordChange ? 1 : 0, id]
+        : [username, role, cfcName, name, requirePasswordChange ? 1 : 0, id];
       
       this.db.run(query, params, function(err) {
         if (err) {

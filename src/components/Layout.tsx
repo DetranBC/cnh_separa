@@ -15,11 +15,13 @@ interface LayoutProps {
   children: React.ReactNode;
   currentView: string;
   onViewChange: (view: string) => void;
+  onShowPasswordModal?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, onShowPasswordModal }) => {
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, roles: ['admin', 'cfc', 'interno', 'operador'] },
@@ -78,13 +80,55 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="text-right">
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-3 text-right hover:bg-stone-100/80 p-2 rounded-xl transition-colors"
+              >
+                <div>
+                  <div className="font-semibold text-gray-800">{user?.name}</div>
+                  <div className={`text-xs px-2 py-1 rounded-full border font-medium ${getRoleColor(user?.role || '')}`}>
+                    {getRoleLabel(user?.role || '')}
+                  </div>
+                </div>
+              </button>
+              
+              {showUserMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-stone-200/50 py-2 z-50">
+                  {onShowPasswordModal && (
+                    <button
+                      onClick={() => {
+                        onShowPasswordModal();
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-gray-700 hover:bg-stone-100/80 transition-colors flex items-center gap-2"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Alterar Senha
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Botão de logout direto (mantido para compatibilidade) */}
+            <div className="text-right hidden">
               <div className="font-semibold text-gray-800">{user?.name}</div>
               <div className={`text-xs px-2 py-1 rounded-full border font-medium ${getRoleColor(user?.role || '')}`}>
                 {getRoleLabel(user?.role || '')}
               </div>
             </div>
-            <button
+            <button className="hidden"
               onClick={handleLogout}
               className="text-gray-600 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition-colors"
               title="Sair"
@@ -95,6 +139,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
         </div>
       </header>
 
+      {/* Overlay para fechar menu do usuário */}
+      {showUserMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowUserMenu(false)}
+        ></div>
+      )}
       <div className="flex">
         {/* Sidebar */}
         <aside className={`

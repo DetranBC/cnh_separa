@@ -52,10 +52,38 @@ const Relatorios: React.FC = () => {
   const loadLotes = async () => {
     try {
       const response = await apiService.getLotes();
-      const data = JSON.parse(response.data || "[]");
+      console.log('Dados recebidos do servidor:', response);
+      
+      // Verifica se response é um array ou se tem uma propriedade data
+      let data = response;
+      if (response && typeof response === 'object' && !Array.isArray(response)) {
+        data = response.data || response;
+      }
+      
+      // Se ainda não for array, tenta fazer parse se for string
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          console.error('Erro ao fazer parse dos dados:', e);
+          data = [];
+        }
+      }
+      
+      // Garante que data é um array
+      if (!Array.isArray(data)) {
+        console.error('Dados não são um array:', data);
+        data = [];
+      }
+      
+      console.log('Lotes processados:', data);
       setLotes(data);
-    } catch(err){ 
-      alert("Deu erro ao pegar os lotes do servidor" + err)
+    } catch(err) { 
+      console.error('Erro ao carregar lotes:', err);
+      alert("Erro ao carregar lotes do servidor: " + err);
+      // Fallback para localStorage se o servidor falhar
+      const localLotes = JSON.parse(localStorage.getItem('lotes') || '[]');
+      setLotes(localLotes);
     }
   };
 

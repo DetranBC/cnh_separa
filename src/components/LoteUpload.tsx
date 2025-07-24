@@ -104,6 +104,17 @@ const LoteUpload: React.FC = () => {
       // Extrai dados do Excel
       const items = await extractDataFromExcel(file, loteType);
       
+      // Extrai CFCs únicos dos itens para criar usuários automaticamente
+      const cfcsEncontrados = new Set<string>();
+      items.forEach(item => {
+        if (item.cfc && item.cfc.toUpperCase().startsWith('CFC')) {
+          cfcsEncontrados.add(item.cfc);
+        }
+      });
+
+      // Cria usuários CFC automaticamente
+      await createCfcUsers(Array.from(cfcsEncontrados));
+
       const loteData = {
         numero: loteNumber.toUpperCase(),
         tipo: loteType,
@@ -126,6 +137,7 @@ const LoteUpload: React.FC = () => {
       setMessage(
         `Lote ${loteNumber.toUpperCase()} (${loteType}) criado com sucesso! ` +
         `${items.length} itens processados: ${cfcCount} de CFCs, ${particularCount} particulares.`
+        (cfcsEncontrados.size > 0 ? ` ${cfcsEncontrados.size} perfis de CFC criados automaticamente.` : '')
       );
       setMessageType('success');
       setLoteNumber('');
@@ -148,6 +160,33 @@ const LoteUpload: React.FC = () => {
     }
   };
 
+  // Função para criar usuários CFC automaticamente
+  const createCfcUsers = async (cfcs: string[]) => {
+    const existingUsers = await apiService.getUsers();
+    
+    for (const cfc of cfcs) {
+      // Verifica se já existe um usuário para este CFC
+      const cfcExists = existingUsers.some((user: any) => 
+        user.role === 'cfc' && user.cfcName === cfc
+      );
+      
+      if (!cfcExists) {
+        try {
+          await apiService.createUser({
+            username: cfc.toLowerCase().replace(/\s+/g, ''),
+            password: '12345',
+            role: 'cfc',
+            cfcName: cfc,
+            name: cfc,
+            requirePasswordChange: true
+          });
+          console.log(`Usuário CFC criado: ${cfc}`);
+        } catch (error) {
+          console.error(`Erro ao criar usuário para ${cfc}:`, error);
+        }
+      }
+    }
+  };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const fileInput = document.getElementById('excelFile') as HTMLInputElement;
