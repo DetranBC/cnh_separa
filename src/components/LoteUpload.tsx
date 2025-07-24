@@ -87,7 +87,7 @@ const LoteUpload: React.FC = () => {
     return items.sort((a, b) => a.nome.localeCompare(b.nome)); // Ordem alfabética
   };
 
-  const handleFileUpload = async (file: File) => {
+   const handleFileUpload = async (file: File) => {
     if (!loteNumber.trim()) {
       setMessage('Por favor, informe o número do lote');
       setMessageType('error');
@@ -111,25 +111,14 @@ const LoteUpload: React.FC = () => {
         items
       };
 
-      // Envia para o servidor
-      // Salva no localStorage
-      const existingLotes = lotesDb;
-      
       // Verifica se o lote já existe
-      const exists = existingLotes.some((l: any) => l.numero === loteData.numero);
+      const exists = lotesDb.some((l: any) => l.numero === loteData.numero);
       if (exists) {
         throw new Error('Número do lote já existe');
       }
       
-      const newLote = {
-        id: Date.now().toString(),
-        ...loteData,
-        criadoEm: new Date().toISOString(),
-        pdfFileName: file.name
-      };
-      
-      existingLotes.push(newLote);
-      localStorage.setItem('lotes', JSON.stringify(existingLotes));
+      // Envia para o servidor
+      await apiService.createLote(loteData);
 
       const cfcCount = items.filter(item => item.cfc).length;
       const particularCount = items.filter(item => !item.cfc).length;
@@ -147,6 +136,9 @@ const LoteUpload: React.FC = () => {
       
       // Dispara evento para atualizar outros componentes
       window.dispatchEvent(new CustomEvent('loteUpdated'));
+      
+      // Recarrega a lista de lotes
+      await loadLotes();
     } catch (error) {
       console.error('Erro ao criar lote:', error);
       setMessage(error instanceof Error ? error.message : 'Erro ao processar o arquivo PDF');

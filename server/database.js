@@ -12,9 +12,10 @@ class Database {
         console.error('Erro ao conectar com o banco de dados:', err.message);
       } else {
         console.log('Conectado ao banco de dados SQLite em:', dbPath);
-        this.initializeTables();
+        this.initializeTables(); // Agora funciona corretamente
       }
     });
+
   }
 
   initializeTables() {
@@ -169,51 +170,50 @@ class Database {
     const { numero, tipo, status, criadoPor, items, pdfFileName } = loteData;
     
     return new Promise((resolve, reject) => {
-      this.db.serialize(() => {
-        this.db.run('BEGIN TRANSACTION');
-        
-        // Inserir lote
-        this.db.run(`
-          INSERT INTO lotes (numero, tipo, status, criado_por, pdf_filename)
-          VALUES (?, ?, ?, ?, ?)
-        `, [numero, tipo, status, criadoPor, pdfFileName], function(err) {
-          if (err) {
-            this.db.run('ROLLBACK');
+  const self = this;
+
+  self.db.serialize(() => {
+    self.db.run('BEGIN TRANSACTION');
+
+    self.db.run(`
+      INSERT INTO lotes (numero, tipo, status, criado_por, pdf_filename)
+      VALUES (?, ?, ?, ?, ?)
+    `, [numero, tipo, status, criadoPor, pdfFileName], function(err) {
+      if (err) {
+        self.db.run('ROLLBACK');
+        reject(err);
+        return;
+      }
+
+      const loteId = this.lastID; // aqui o this está OK (do sqlite3)
+      const stmt = self.db.prepare(`
+        INSERT INTO lote_items (lote_id, nome, cfc, tipo, numero_documento)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      let itemsInserted = 0;
+      let hasError = false;
+
+      items.forEach(item => {
+        stmt.run([loteId, item.nome, item.cfc, item.tipo, item.numeroDocumento], (err) => {
+          if (err && !hasError) {
+            hasError = true;
+            self.db.run('ROLLBACK');
             reject(err);
             return;
           }
-          
-          const loteId = this.lastID;
-          
-          // Inserir itens do lote
-          const stmt = this.db.prepare(`
-            INSERT INTO lote_items (lote_id, nome, cfc, tipo, numero_documento)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-          
-          let itemsInserted = 0;
-          let hasError = false;
-          
-          items.forEach(item => {
-            stmt.run([loteId, item.nome, item.cfc, item.tipo, item.numeroDocumento], (err) => {
-              if (err && !hasError) {
-                hasError = true;
-                this.db.run('ROLLBACK');
-                reject(err);
-                return;
-              }
-              
-              itemsInserted++;
-              if (itemsInserted === items.length && !hasError) {
-                stmt.finalize();
-                this.db.run('COMMIT');
-                resolve({ id: loteId, ...loteData });
-              }
-            });
-          });
+
+          itemsInserted++;
+          if (itemsInserted === items.length && !hasError) {
+            stmt.finalize();
+            self.db.run('COMMIT');
+            resolve({ id: loteId, ...loteData });
+          }
         });
       });
     });
+  });
+});
   }
 
   async getAllLotes() {

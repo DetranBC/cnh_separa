@@ -90,7 +90,7 @@ const Relatorios: React.FC = () => {
         ...lote,
         items: lote.items.filter(item => {
           const itemCfc = item.cfc || linkNameToCfc(item.nome);
-          return normalizeCfc(itemCfc) === normalizeCfc(user.cfcName);
+          return normalizeCfc(itemCfc ?? undefined) === normalizeCfc(user.cfcName);
         })
       })).filter(lote => lote.items.length > 0);
     }

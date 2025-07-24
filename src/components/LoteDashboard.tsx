@@ -60,7 +60,8 @@ const LoteDashboard: React.FC = () => {
   const loadLotes = async () => {
     try {
       const response = await apiService.getLotes();
-      const data = JSON.parse(response.data || "[]");
+      console.log(response);
+      const data = response || [];
       setLotes(data);
     } catch(err){ 
       alert("Deu erro ao pegar os lotes do servidor" + err)
