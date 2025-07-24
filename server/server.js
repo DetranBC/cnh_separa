@@ -72,7 +72,8 @@ app.post('/api/login', async (req, res) => {
         username: user.username,
         role: user.role,
         cfcName: user.cfc_name,
-        name: user.name
+        name: user.name,
+        requirePasswordChange: user.require_password_change === 1
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -85,7 +86,8 @@ app.post('/api/login', async (req, res) => {
         username: user.username,
         role: user.role,
         cfcName: user.cfc_name,
-        name: user.name
+        name: user.name,
+        requirePasswordChange: user.require_password_change === 1
       }
     });
   } catch (error) {
@@ -108,7 +110,8 @@ app.get('/api/users', authenticateToken, async (req, res) => {
       role: user.role,
       cfcName: user.cfc_name,
       name: user.name,
-      createdAt: user.created_at
+      createdAt: user.created_at,
+      requirePasswordChange: user.require_password_change === 1
     }));
 
     res.json(formattedUsers);
@@ -130,7 +133,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
       username: user.username,
       role: user.role,
       cfcName: user.cfcName,
-      name: user.name
+      name: user.name,
+      requirePasswordChange: user.requirePasswordChange || false
     });
   } catch (error) {
     console.error('Erro ao criar usuário:', error);
