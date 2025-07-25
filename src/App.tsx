@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Layout from './components/Layout';
 import UserManagement from './components/UserManagement';
+import WelcomeScreen from './components/WelcomeScreen';
 import LoteUpload from './components/LoteUpload';
 import LoteDashboard from './components/LoteDashboard';
 import LoteSeparacao from './components/LoteSeparacao';
@@ -12,7 +13,7 @@ import PasswordChangeModal from './components/PasswordChangeModal';
 const AppContent: React.FC = () => {
   const { user, isLoading, requirePasswordChange } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [activeSection, setActiveSection] = useState('welcome');
 
   if (isLoading) {
     return (
@@ -43,6 +44,8 @@ const AppContent: React.FC = () => {
   }
   const renderContent = () => {
     switch (currentView) {
+      case 'welcome':
+        return <WelcomeScreen user={user} onNavigate={setActiveSection} />;
       case 'relatorios':
         return <Relatorios />;
       case 'users':
@@ -56,6 +59,21 @@ const AppContent: React.FC = () => {
         return <LoteDashboard />;
     }
   };
+
+  // Se estiver na tela de boas-vindas, não mostrar o layout padrão
+  if (activeSection === 'welcome') {
+    return (
+      <>
+        {renderContent()}
+        {showPasswordModal && (
+          <PasswordChangeModal
+            onClose={() => setShowPasswordModal(false)}
+            onSuccess={() => setShowPasswordModal(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>

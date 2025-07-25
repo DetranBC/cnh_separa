@@ -82,6 +82,26 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange, on
           <div className="flex items-center gap-4">
             <div className="relative">
               <button
+                onClick={() => onSectionChange('welcome')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeSection === 'welcome'
+                    ? 'bg-blue-700 text-white'
+                    : 'text-blue-100 hover:bg-blue-700 hover:text-white'
+                }`}
+              >
+                Início
+              </button>
+              <button
+                onClick={() => onSectionChange('welcome')}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeSection === 'welcome'
+                    ? 'bg-blue-700 text-white'
+                    : 'text-blue-100 hover:bg-blue-700 hover:text-white'
+                }`}
+              >
+                Início
+              </button>
+              <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-3 text-right hover:bg-stone-100/80 p-2 rounded-xl transition-colors"
               >

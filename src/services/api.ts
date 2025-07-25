@@ -1,7 +1,7 @@
 // Configuração da API para conectar com o servidor local
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'http://10.121.202.145:3001/api' 
-  : 'http://10.121.202.145:3001/api';
+  : 'http://localhost:3001/api';
 
 class ApiService {
   private baseUrl: string;
