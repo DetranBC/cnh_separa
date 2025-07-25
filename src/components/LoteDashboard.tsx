@@ -86,12 +86,24 @@ const LoteDashboard: React.FC = () => {
       
       console.log('Lotes processados:', data);
       setLotes(data);
-    } catch(err) { 
+    } catch (err) { 
       console.error('Erro ao carregar lotes:', err);
-      alert("Erro ao carregar lotes do servidor: " + err);
-      // Fallback para localStorage se o servidor falhar
-      const localLotes = JSON.parse(localStorage.getItem('lotes') || '[]');
-      setLotes(localLotes);
+      
+      // Verifica se é erro de conexão
+      if (err instanceof Error && (err.message.includes('Failed to fetch') || err.message.includes('fetch'))) {
+        console.warn('Servidor não disponível, usando dados locais');
+        // Fallback silencioso para localStorage se o servidor não estiver disponível
+        const localLotes = JSON.parse(localStorage.getItem('lotes') || '[]');
+        setLotes(localLotes);
+        
+        // Mostra aviso discreto apenas no console
+        console.info('💡 Dica: Para sincronizar com o servidor, execute "npm run server" em outro terminal');
+      } else {
+        // Para outros tipos de erro, mostra o alerta
+        alert("Erro ao carregar lotes do servidor: " + err);
+        const localLotes = JSON.parse(localStorage.getItem('lotes') || '[]');
+        setLotes(localLotes);
+      }
     }
   };
 
