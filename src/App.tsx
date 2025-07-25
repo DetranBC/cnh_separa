@@ -14,6 +14,7 @@ const AppContent: React.FC = () => {
   const { user, isLoading, requirePasswordChange } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
   const [activeSection, setActiveSection] = useState('welcome');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   if (isLoading) {
     return (
